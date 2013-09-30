@@ -13,15 +13,20 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
     fractal = new FractalWidget();
     fractal->setPixmap(QPixmap::fromImage(*image));
 
-    c_re_edit = new QLineEdit("0.28");
-    c_im_edit = new QLineEdit("0.0113");
+    c_re_edit = new QLineEdit("0.37");
+    c_im_edit = new QLineEdit("0.41");
 
     infinity_edit = new QLineEdit("2");
     iterations_edit = new QLineEdit("50");
 
     red_factor_edit = new QLineEdit("3.0");
-    green_factor_edit = new QLineEdit("1.0");
-    blue_factor_edit = new QLineEdit("1.0");
+    green_factor_edit = new QLineEdit("2.0");
+    blue_factor_edit = new QLineEdit("3.0");
+
+    upper_left_corner_x_edit = new QLineEdit("-5");
+    upper_left_corner_y_edit = new QLineEdit("-5");
+    lower_right_corner_x_edit = new QLineEdit("5");
+    lower_right_corner_y_edit = new QLineEdit("5");
 
     input = new QWidget();
     input_layout = new QFormLayout(input);
@@ -33,34 +38,32 @@ MainWindow::MainWindow(QWidget *parent) : QWidget(parent)
     input_layout->addRow("green factor: ", green_factor_edit);
     input_layout->addRow("blue factor: ", blue_factor_edit);
 
+    input_layout->addRow("upper left corner x: ", upper_left_corner_x_edit);
+    input_layout->addRow("upper left corner y: ", upper_left_corner_y_edit);
+    input_layout->addRow("lower right corner x: ", lower_right_corner_x_edit);
+    input_layout->addRow("lower right corner y: ", lower_right_corner_y_edit);
+
     paint_button = new QPushButton("paint");
-
-    upper_left_corner = Complex(-10, -10);
-    lower_right_corner = Complex(10, 10);
-
-    upper_left_corner_label = new QLabel(QString("Upper left corner: (%1 ; %2)").arg(upper_left_corner.x).arg(upper_left_corner.y));
-    lower_right_corner_label = new QLabel(QString("Lower right corner: (%1 ; %2)").arg(lower_right_corner.x).arg(lower_right_corner.y));
 
     layout->addWidget(fractal);
     layout->addWidget(input);
     layout->addWidget(paint_button);
-    layout->addWidget(upper_left_corner_label);
-    layout->addWidget(lower_right_corner_label);
 
-    connect(paint_button, SIGNAL(clicked()), this, SLOT(paint_slot()));
+    connect(paint_button, SIGNAL(clicked()), this, SLOT(button_paint_slot()));
     connect(fractal, SIGNAL(mouse_released(int, int, int, int)), this, SLOT(mouse_released_slot(int, int, int, int)));
 }
 
 int MainWindow::when_goes_to_infinity(Complex z)
 {
     int iteration = 1;
-    while ( z.abs() < infinity && iteration < iterations )
+    while ( z.abs() < infinity && iteration <= iterations )
     {
         z = func(z);
         ++iteration;
     }
 
-    return (z.abs() >= infinity ? iteration : 0);
+//    return (z.abs() >= infinity ? iteration : 0);
+    return iteration - 1;
 }
 
 Complex MainWindow::get_complex(int i, int j)
@@ -68,6 +71,17 @@ Complex MainWindow::get_complex(int i, int j)
     Complex d = (lower_right_corner - upper_left_corner);
 
     return upper_left_corner + Complex(d.x * i / image_width, d.y * j / image_height);
+}
+
+void MainWindow::button_paint_slot()
+{
+    upper_left_corner.x = upper_left_corner_x_edit->text().toDouble();
+    upper_left_corner.y = upper_left_corner_y_edit->text().toDouble();
+
+    lower_right_corner.x = lower_right_corner_x_edit->text().toDouble();
+    lower_right_corner.y = lower_right_corner_y_edit->text().toDouble();
+
+    emit paint_slot();
 }
 
 void MainWindow::paint_slot()
@@ -89,11 +103,23 @@ void MainWindow::paint_slot()
             Complex z0 = get_complex(j, i);
             int iter = when_goes_to_infinity(z0);
 
-            double all = red_factor + green_factor + blue_factor;
+            double sum = (blue_factor + green_factor + red_factor) / 3;
 
-            *bit = std::min(255, int(blue_factor / all * iter * 255)); ++bit;  //blue
-            *bit = std::min(255, int(green_factor /all * iter * 255)); ++bit;  //green
-            *bit = std::min(255, int(red_factor / all * iter * 255)); ++bit;  //red
+//            iter = (iterations - iter);
+/*
+ *  normal
+ *
+            *bit = std::min(255, (int)(255 * blue_factor / sum * iter * iter / iterations)); ++bit;  //blue
+            *bit = std::min(255, (int)(255 * green_factor / sum * iter * iter / iterations)); ++bit;  //green
+            *bit = std::min(255, (int)(255 * red_factor / sum * iter * iter / iterations)); ++bit;  //red
+*/
+/*
+ *  modular
+ *
+            *bit = (int)(255 * blue_factor * iter * iter / iterations / sum); ++bit;  //blue
+            *bit = (int)(255 * green_factor * iter * iter / iterations / sum); ++bit;  //green
+            *bit = (int)(255 * red_factor * iter * iter / iterations / sum); ++bit;  //red
+*/
             *bit = 255; ++bit;  //alpha
         }
     }
@@ -108,8 +134,11 @@ void MainWindow::mouse_released_slot(int xt, int yt, int xb, int yb)
     upper_left_corner = tmp1;
     lower_right_corner = tmp2;
 
-    upper_left_corner_label->setText(QString("Upper left corner: (%1 ; %2)").arg(upper_left_corner.x).arg(upper_left_corner.y));
-    lower_right_corner_label->setText(QString("Lower right corner: (%1 ; %2)").arg(lower_right_corner.x).arg(lower_right_corner.y));
+    upper_left_corner_x_edit->setText(QString("%1").arg(upper_left_corner.x));
+    upper_left_corner_y_edit->setText(QString("%1").arg(upper_left_corner.y));
+
+    lower_right_corner_x_edit->setText(QString("%1").arg(lower_right_corner.x));
+    lower_right_corner_y_edit->setText(QString("%1").arg(lower_right_corner.y));
 
     emit paint_button->clicked();
 }

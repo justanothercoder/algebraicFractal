@@ -34,8 +34,10 @@ public:
               *green_factor_edit,
               *blue_factor_edit;
 
-    QLabel *upper_left_corner_label,
-           *lower_right_corner_label;
+   QLineEdit *upper_left_corner_x_edit,
+             *upper_left_corner_y_edit,
+             *lower_right_corner_x_edit,
+             *lower_right_corner_y_edit;
 
     QPushButton *paint_button;
 
@@ -65,6 +67,7 @@ signals:
 
 public slots:
     void paint_slot();
+    void button_paint_slot();
     void mouse_released_slot(int xt, int yt, int xb, int yb);
 };
 
